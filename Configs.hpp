@@ -9,12 +9,13 @@ struct SheepConfigs {
     int damage;
     int strength;
     float displayProb;
+    std::string texturePath;
 };
 
 const std::vector<SheepConfigs> SHEEP_CONFIGS = {
-    {"Timmy", 50, 50, 0.5f},
-    {"Shaun", 30, 150, 0.3f},
-    {"Meow", 10, 250, 0.2f}
+    {"Timmy", 50, 50, 0.5f, PICS_PATH + "timmy.png"},
+    {"Shaun", 30, 150, 0.3f, PICS_PATH + "shaun.png"},
+    {"Meow", 10, 250, 0.2f, PICS_PATH + "meow.png"}
 };
 
 // سایر مقادیر کانفیگ

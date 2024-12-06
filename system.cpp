@@ -115,9 +115,11 @@ void System::handle_key(Keyboard::Key key) {
             case Keyboard::Enter: {
             
                 float X = 150;
-                float Y = OFFSET/2 + currentLine * (LINEHEIGHT + SPACING) + LINEHEIGHT / 2;
-                Player* newPlayer = new Player(X,Y,2.0f);
+                float Y = OFFSET / 2 + currentLine * (LINEHEIGHT + SPACING) + LINEHEIGHT / 2;
+                const SheepConfigs& randomSheep = SHEEP_CONFIGS[rand() % SHEEP_CONFIGS.size()];
+                Player* newPlayer = new Player(X, Y, 1.0f, randomSheep);
                 players.push_back(newPlayer);
+
 
                 break;
             }
@@ -127,6 +129,7 @@ void System::handle_key(Keyboard::Key key) {
         }
     }
 }
+
 
 void System::updatePlayers() {
     for (auto it = players.begin(); it != players.end();) {

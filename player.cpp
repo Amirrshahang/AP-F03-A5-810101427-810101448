@@ -4,15 +4,16 @@
 
 const int v = 15;
 
-Player::Player(int x, int y, float speed) : pos(x, y), speedX(speed) {
-   pos = Vector2f(x, y);
-    if (!texture.loadFromFile(PICS_PATH + "player1.png")) {
-        throw runtime_error("Failed to load player image!");
+Player::Player(int x, int y, float speed, const SheepConfigs& config) 
+    : pos(x, y), speedX(speed), sheepConfig(config) {
+    if (!texture.loadFromFile(config.texturePath)) { // بارگذاری تصویر خاص گوسفند
+        throw std::runtime_error("Failed to load player image: " + config.texturePath);
     }
     sprite.setTexture(texture);
     sprite.setPosition(pos);
-    sprite.setScale(0.35f, 0.35f);
+    sprite.setScale(0.35f, 0.35f); // تنظیم اندازه بازیکن
 }
+
 
 Player::~Player() {}
 
@@ -36,4 +37,3 @@ bool Player::move(float boundaryX) {
 void Player::update() {
     sprite.setPosition(pos);
 }
-
