@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include "global.hpp"
 #include "player.hpp"
 #include <vector>
@@ -27,7 +28,7 @@ private:
     Player* player;
     Texture backgroundTexture;
     Sprite backgroundSprite;
-
+    chrono::steady_clock::time_point lastSpawnTime;
     vector<RectangleShape*> lines;
     vector<Player*> players; 
     Font font;                    

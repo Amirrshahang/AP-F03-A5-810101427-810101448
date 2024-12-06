@@ -9,6 +9,7 @@ System::System(int width, int height) {
         return;
     }
     backgroundSprite.setTexture(backgroundTexture);
+    lastSpawnTime = std::chrono::steady_clock::now();
 
     lineCount = 5;
     currentLine = 2; 
@@ -113,23 +114,25 @@ void System::handle_key(Keyboard::Key key) {
                 break;
 
             case Keyboard::Enter: {
-            
-                float X = 150;
-                float Y = OFFSET / 2 + currentLine * (LINEHEIGHT + SPACING) + LINEHEIGHT / 2;
-                const SheepConfigs& randomSheep = SHEEP_CONFIGS[rand() % SHEEP_CONFIGS.size()];
-                Player* newPlayer = new Player(X, Y, 1.0f, randomSheep);
-                players.push_back(newPlayer);
+                auto now = std::chrono::steady_clock::now(); 
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastSpawnTime).count();
 
+                if (elapsed >= COOLDOWN_MS) { 
+                    float X = 150;
+                    float Y = OFFSET / 2 + currentLine * (LINEHEIGHT + SPACING) + LINEHEIGHT / 2;
+                    const SheepConfigs& randomSheep = SHEEP_CONFIGS[rand() % SHEEP_CONFIGS.size()];
+                    Player* newPlayer = new Player(X, Y, CONSTANT_SPEED, randomSheep);
+                    players.push_back(newPlayer);
 
+                    lastSpawnTime = now; 
+                }
                 break;
             }
-
             default:
                 break;
         }
     }
 }
-
 
 void System::updatePlayers() {
     for (auto it = players.begin(); it != players.end();) {
