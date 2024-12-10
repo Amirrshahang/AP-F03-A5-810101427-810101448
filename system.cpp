@@ -68,24 +68,38 @@ System::System(int width, int height) {
         circle.setOutlineColor(Color::Transparent);
         circle.setPosition(230 + i * (radius * 2 + spacing), 33);
         sheepCircles1.push_back(circle);
-    }
-    for (int i = 0; i < 3; ++i) {
-        CircleShape circle(radius);
-        circle.setFillColor(Color::Transparent);
-        circle.setOutlineThickness(2);
-        circle.setOutlineColor(Color::Transparent);
         circle.setPosition(960 - i * (radius * 2 + spacing), 33);
         sheepCircles2.push_back(circle);
     }
 
     
 
+for (int i = 0; i < TOTAL_SHEEP_IN_QUEUE; ++i) {
+    float r = static_cast<float>(rand()) / RAND_MAX;
+    float cumulative = 0.0f;
+
     for (const auto& sheep : SHEEP_CONFIGS1) {
-        sheepQueue1.push_back(sheep); 
+        cumulative += sheep.displayProb;
+        if (r <= cumulative) {
+            sheepQueue1.push_back(sheep);
+            break;
+        }
     }
+}
+
+for (int i = 0; i < TOTAL_SHEEP_IN_QUEUE; ++i) {
+    float r = static_cast<float>(rand()) / RAND_MAX;
+    float cumulative = 0.0f;
+
     for (const auto& sheep : SHEEP_CONFIGS2) {
-        sheepQueue2.push_back(sheep); 
+        cumulative += sheep.displayProb;
+        if (r <= cumulative) {
+            sheepQueue2.push_back(sheep);
+            break;
+        }
     }
+}
+
 
     updateSheepCircles1(); 
     updateSheepCircles2();
@@ -117,7 +131,14 @@ System::~System() {
     lines2.clear();
 }
 
-
+void System::initializeMusic() {
+    if (!backgroundMusic.openFromFile(AUDIO_PATH + "03. Choose Your Seeds.flac")) {
+        throw std::runtime_error("Failed to load background music!");
+    }
+    backgroundMusic.setLoop(true);
+    backgroundMusic.setVolume(50);
+    backgroundMusic.play();
+}
 
 void System::initializeLines1() {
     float startX = 160;
@@ -227,7 +248,8 @@ void System::updatePlayers(vector<PlayerBase*> linePlayers[], int& playerHealth,
                 playerHealth -= (*it)->getDamage();
                 if (playerHealth <= 0) {
                     playerHealth = 0;
-                    state = EXIT;
+                    state = isPlayer1 ? WHITE_SHEEP_VICTORY_SCREEN : BLACK_SHEEP_VICTORY_SCREEN;
+                    return; 
                 }
 
                 if (isPlayer1) {
@@ -238,7 +260,10 @@ void System::updatePlayers(vector<PlayerBase*> linePlayers[], int& playerHealth,
 
                 delete *it;
                 it = playersInLine.erase(it);
-            } else {
+            }else if((*it)->isOutOfSelfBoundary()){
+                delete *it;
+                it = playersInLine.erase(it);
+            }else {
                 ++it;
             }
         }
@@ -247,6 +272,8 @@ void System::updatePlayers(vector<PlayerBase*> linePlayers[], int& playerHealth,
 
 
 void System::run() {
+     initializeMusic();
+
     while (window.isOpen()&& state != EXIT) {
         handle_events();
         updatePlayers(linePlayers1, playerHealth2, 1030, true);
@@ -254,8 +281,7 @@ void System::run() {
 
          for (int i = 0; i < LINECOUNT; ++i) {
              checkCollisions(i);
-         }
-
+        }
         render();
     }
     exit(0);
@@ -283,45 +309,91 @@ void System::handle_events() {
     }
 }
 
-void handleTeamCollisions(vector<PlayerBase*>& linePlayers) {
-    for (auto it = linePlayers.begin(); it != linePlayers.end(); ++it) {
-        auto next = it + 1;
-        if (next != linePlayers.end() && (*it)->isStopped()) {
-            if ((*it)->getGlobalBounds().intersects((*next)->getGlobalBounds())) {
-                (*next)->stop();
-            }
+void System::handleTeamCollisions(vector<PlayerBase*>& linePlayers) {
+    if (linePlayers.size() < 2) {
+        return;
+    }
+    
+    for (size_t i = 0; i < linePlayers.size() - 1; ++i) {
+        auto* current = linePlayers[i];
+        auto* next = linePlayers[i + 1];
+        
+        if (!current || !next) {
+            continue;
+        }
+
+        if (current->isStopped() && current->getGlobalBounds().intersects(next->getGlobalBounds())) {
+            next->speedHandling(current->getSpeed());
         }
     }
 }
 
- void System::checkCollisions(int lineIndex) {
-     auto& players1InLine = linePlayers1[lineIndex];
-     auto& players2InLine = linePlayers2[lineIndex];
+void System::checkCollisions(int lineIndex) {
+    int linePower = 0; 
+    auto& players1InLine = linePlayers1[lineIndex];
+    auto& players2InLine = linePlayers2[lineIndex];
+    if (!players1InLine.empty() && !players2InLine.empty()) {
+        auto fw = players1InLine[0];
+        auto fb = players2InLine[0];
 
-    for (auto it1 = players1InLine.begin(); it1 != players1InLine.end(); ++it1) {
+        //linePower += fw->getStrength()-fb->getStrength();
+
+        if (fw->getGlobalBounds().intersects(fb->getGlobalBounds())) {
+            fw->speedHandling(0);
+            fb->speedHandling(0); 
+            // if(linePower == 0){
+            //     fw->speedHandling(0);
+            //     fb->speedHandling(0); 
+            // }
+    
+            // if(linePower > 0){
+            //     fw->speedHandling(CONSTANT_SPEED);
+            //     fb->speedHandling(CONSTANT_SPEED); 
+            // }
+
+            // if(linePower < 0){
+            //     fw->speedHandling(-CONSTANT_SPEED);
+            //     fb->speedHandling(-CONSTANT_SPEED); 
+            // }
+        }
+
+        handleTeamCollisions(players1InLine);
+        handleTeamCollisions(players2InLine);
+        
+
+
+        for (auto it1 = players1InLine.begin(); it1 != players1InLine.end(); ++it1) {
+            linePower+=(*it1)->getStrength();
+        }
         for (auto it2 = players2InLine.begin(); it2 != players2InLine.end(); ++it2) {
-            if ((*it1)->getGlobalBounds().intersects((*it2)->getGlobalBounds())) { 
-                if ((*it1)->getStrength() > (*it2)->getStrength()) {
-                    
-                    (*it2)->speedHandling((*it1)->getSpeed());
+            linePower -=(*it2)->getStrength();
+        }
 
-                }else if ((*it1)->getStrength() < (*it2)->getStrength()) {
+    }
+    
+        if(linePower < 0){  
 
-                    (*it1)->speedHandling((*it2)->getSpeed());
-
-                }else {
-                     (*it1)->stop();
-                     (*it2)->stop();
-                }
+            for (auto it1 = players1InLine.begin(); it1 != players1InLine.end(); ++it1) {
+                (*it1)->speedHandling(-CONSTANT_SPEED); 
+            }
+            for (auto it2 = players2InLine.begin(); it2 != players2InLine.end(); ++it2) {
+                (*it2)->speedHandling(-CONSTANT_SPEED); 
             }
         }
-    }
 
-    handleTeamCollisions(linePlayers1[lineIndex]); 
-    handleTeamCollisions(linePlayers2[lineIndex]); 
 
 }
 
+    
+
+    
+int System::calculateLineStrength(const vector<PlayerBase*>& linePlayers) {
+    int totalStrength = 0;
+    for (const auto& player : linePlayers) {
+        totalStrength += player->getStrength();
+    }
+    return totalStrength;
+}
 
 
 void System::handle_key(Keyboard::Key key) {
@@ -375,6 +447,7 @@ void System::handle_key(Keyboard::Key key) {
                 if (isFirstSpawn1 || elapsed >= COOLDOWN_MS) { 
                     float X = 140;
                     float Y = OFFSET / 2 + currentLine1 * (LINEHEIGHT + SPACING) + 2 * LINEHEIGHT / 3;
+
                     if (!sheepQueue1.empty()) {
                         const SheepConfigs& selectedSheep1 = sheepQueue1.front(); 
                         Player1* newPlayer = new Player1(X, Y, CONSTANT_SPEED, selectedSheep1);
@@ -387,6 +460,7 @@ void System::handle_key(Keyboard::Key key) {
 
                         updateSheepCircles1(); 
                     }
+                    updateSheepCircles1(); 
 
                     lastSpawnTime1 = now; 
                     isFirstSpawn1 = false; 
@@ -397,10 +471,11 @@ void System::handle_key(Keyboard::Key key) {
             case Keyboard::Space: {
                 auto now = chrono::steady_clock::now();
                 auto elapsed = chrono::duration_cast<chrono::milliseconds>(now - lastSpawnTime2).count();
-
                 if (isFirstSpawn2 || elapsed >= COOLDOWN_MS) { 
+
                     float X = 1025;
                     float Y = OFFSET / 2 + currentLine2 * (LINEHEIGHT + SPACING) + 2 * LINEHEIGHT / 3;
+
                     if (!sheepQueue2.empty()) {
                         const SheepConfigs& selectedSheep2 = sheepQueue2.front(); 
                         Player2* newPlayer = new Player2(X, Y, CONSTANT_SPEED, selectedSheep2);
@@ -411,7 +486,8 @@ void System::handle_key(Keyboard::Key key) {
                             sheepQueue2.push_back(SHEEP_CONFIGS2[rand() % SHEEP_CONFIGS2.size()]);
                         }
                         updateSheepCircles2(); 
-                    }
+                    } 
+
 
                     lastSpawnTime2 = now; 
                     isFirstSpawn2 = false; 
@@ -423,8 +499,24 @@ void System::handle_key(Keyboard::Key key) {
         }
     }
 }
+
 void System::render() {
     window.clear();
+
+    if (state == WHITE_SHEEP_VICTORY_SCREEN || state == BLACK_SHEEP_VICTORY_SCREEN) {
+        Texture victoryTexture;
+        std::string texturePath = (state == WHITE_SHEEP_VICTORY_SCREEN) ? PICS_PATH + "White_Sheep_Win_Resized_Corrected.png" : PICS_PATH +  "Black_Sheep_Win_Resized-1.png";
+        if (!victoryTexture.loadFromFile(texturePath)) {
+            throw std::runtime_error("Failed to load victory image!");
+        }
+        Sprite victorySprite(victoryTexture);
+        victorySprite.setPosition(window.getSize().x / 2 - victorySprite.getGlobalBounds().width / 2,
+                                  window.getSize().y / 2 - victorySprite.getGlobalBounds().height / 2);
+        window.draw(victorySprite);
+        window.display();
+        return;
+    }
+
     window.draw(backgroundSprite);
 
     for (auto& line : lines1) {

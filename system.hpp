@@ -8,14 +8,11 @@
 
 enum State {
     IN_GAME,
-    PAUSE_MENU,
-    MAIN_MENU,
-    LEVEL_SELECT,
-    VICTORY_SCREEN,
-    GAMEOVER_SCREEN,
-    CREDITS,
+    WHITE_SHEEP_VICTORY_SCREEN,
+    BLACK_SHEEP_VICTORY_SCREEN,
     EXIT
 };
+
 
 class System {
 private:
@@ -28,6 +25,7 @@ private:
     Sprite backgroundSprite;
     CircleShape healthCircle1;
     CircleShape healthCircle2;
+    Music backgroundMusic;
 
     //queue<Player1*> players1;
     //vector<Player2*> players2;
@@ -67,10 +65,14 @@ private:
     void updateHealthDisplay2();
     void updateSheepCircles1();
     void updateSheepCircles2();
+    void initializeMusic();
     void highlightLine();
     void handle_events();
     void handle_key(Keyboard::Key key);
     void checkCollisions(int lineIndex);
+    void handleTeamCollisions(vector<PlayerBase*>& linePlayers);
+    void checkCollisionsRecursive(vector<PlayerBase*>& team1, vector<PlayerBase*>& team2, int& linePower);
+    int calculateLineStrength(const vector<PlayerBase*>& linePlayers);
     void updatePlayers(vector<PlayerBase*> linePlayers[], int& playerHealth, float boundaryX, bool isPlayer1);
 
 public:
