@@ -1,11 +1,11 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -w -Wextra -I./include -I/opt/homebrew/opt/sfml/include
+CXXFLAGS = -std=c++20 -w -Wextra -I./include -I/opt/homebrew/opt/sfml/include -fsanitize=address -fsanitize=undefined
 LFLAGS = -L/opt/homebrew/opt/sfml/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
 
 SRCDIR = src
 OBJDIR = obj
 BINDIR = .
-EXECUTABLE = $(BINDIR)/game.out
+EXECUTABLE = $(BINDIR)/SheepFight
 
 SOURCES := $(wildcard $(SRCDIR)/*.cpp)
 OBJECTS := $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SOURCES))
